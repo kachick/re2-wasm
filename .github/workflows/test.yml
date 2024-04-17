@@ -18,9 +18,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{matrix.node}}
-      - uses: mymindstorm/setup-emsdk@v7
+      - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 2.0.9
+          # candidates: https://github.com/emscripten-core/emsdk/tags
+          version: '3.1.57'
           no-cache: true
       - name: Install
         run: npm install
