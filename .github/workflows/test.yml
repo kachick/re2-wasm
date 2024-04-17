@@ -8,8 +8,9 @@ on:
 jobs:
   tests:
     strategy:
+      fail-fast: false
       matrix:
-        node: [10, 12, 14]
+        node: [16, 18, 20]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,9 +19,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{matrix.node}}
-      - uses: mymindstorm/setup-emsdk@v7
+      - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 2.0.9
+          # candidates: https://github.com/emscripten-core/emsdk/tags
+          version: '3.1.57'
           no-cache: true
       - name: Install
         run: npm install
