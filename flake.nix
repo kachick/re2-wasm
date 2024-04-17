@@ -24,7 +24,9 @@
               bashInteractive
 
               nodejs_20
-              gnumake
+              cmake
+              abseil-cpp # https://github.com/google/re2/blob/b84e3ff189980a33d4a0c6fa1201aa0b3b8bab4a/README#L13
+              ninja
               edge-pkgs.emscripten # `emcc`
             ];
           };
