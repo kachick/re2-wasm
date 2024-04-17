@@ -8,6 +8,7 @@ on:
 jobs:
   tests:
     strategy:
+      fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18, 20]
     runs-on: ubuntu-latest
