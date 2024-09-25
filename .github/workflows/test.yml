@@ -11,18 +11,18 @@ jobs:
       fail-fast: false
       matrix:
         node: [16, 18, 20]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{matrix.node}}
       - uses: mymindstorm/setup-emsdk@v14
         with:
           # candidates: https://github.com/emscripten-core/emsdk/tags
-          version: '3.1.57'
+          version: '3.1.51'
           no-cache: true
       - name: Install
         run: npm install
