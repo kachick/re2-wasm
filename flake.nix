@@ -29,6 +29,7 @@
               buildInputs = [
                 bashInteractive
                 nixfmt-rfc-style
+                nil
 
                 nodejs_20
                 cmake
@@ -41,6 +42,59 @@
               # LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.abseil-cpp ];
               # propagatedBuildInputs = [ pkgs.abseil-cpp pkgs.icu ];
             };
+        }
+      );
+
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          my-abseil = pkgs.abseil-cpp_202401.override { cxxStandard = "17"; };
+
+          re2-src = pkgs.fetchgit {
+            url = "git://github.com/google/re2.git";
+            rev = "2024-07-02";
+            hash = lib.fakeHash;
+            fetchSubmodules = true;
+          };
+        in
+        {
+          re2-wasm = pkgs.llvmPackages_17.stdenv.mkDerivation {
+            name = "re2-wasm";
+            srcs = [
+              ./.
+              re2-src
+            ];
+            # nativeBuildInputs = with pkgs; [
+            #   # gnumake
+            #   cmake
+            #   # ninja
+            #   # pkg-config
+            #   my-abseil
+            #   llvmPackages_17.clang-tools
+            # ];
+            buildInputs = with pkgs; [
+              llvmPackages_17.clang-tools
+
+              nodejs_20
+              # gnumake
+              cmake
+
+              # ninja
+              my-abseil
+              emscripten # `emcc`
+            ];
+
+            # buildPhase = ''
+
+            # '';
+
+            installPhase = ''
+              rm -rf ./deps
+              mv ./re2 ./deps/re2
+              npm install
+            '';
+          };
         }
       );
     };
