@@ -11,12 +11,23 @@ set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 if(NOT DEFINED ABSEIL_SOURCE_DIR)
   if(DEFINED ENV{ABSEIL_SOURCE_DIR})
     set(ABSEIL_SOURCE_DIR "$ENV{ABSEIL_SOURCE_DIR}")
-  else()
+  elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deps/abseil-cpp")
     set(ABSEIL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/abseil-cpp")
+  else()
+    include(FetchContent)
+    FetchContent_Declare(
+      abseil_cpp
+      GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+      GIT_TAG        20240116.2
+    )
+    FetchContent_MakeAvailable(abseil_cpp)
+    set(ABSEIL_SOURCE_DIR "${abseil_cpp_SOURCE_DIR}")
   endif()
 endif()
 
-add_subdirectory("${ABSEIL_SOURCE_DIR}" abseil-cpp EXCLUDE_FROM_ALL)
+if(NOT TARGET absl::base)
+  add_subdirectory("${ABSEIL_SOURCE_DIR}" abseil-cpp EXCLUDE_FROM_ALL)
+endif()
 
 set(RE2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/re2 re2 EXCLUDE_FROM_ALL)
