@@ -1,6 +1,17 @@
+BUILD_DIR ?= build/cmake
+CMAKE_EXTRA_ARGS ?=
+
 all: wasm/re2.js
 
-wasm/re2.js: wrap/re2_wrap.cc deps/re2/re2/bitstate.cc deps/re2/re2/compile.cc deps/re2/re2/dfa.cc deps/re2/re2/filtered_re2.cc deps/re2/re2/mimics_pcre.cc deps/re2/re2/nfa.cc deps/re2/re2/onepass.cc deps/re2/re2/parse.cc deps/re2/re2/perl_groups.cc deps/re2/re2/prefilter.cc deps/re2/re2/prefilter_tree.cc deps/re2/re2/prog.cc deps/re2/re2/re2.cc deps/re2/re2/regexp.cc deps/re2/re2/set.cc deps/re2/re2/simplify.cc deps/re2/re2/tostring.cc deps/re2/re2/unicode_casefold.cc deps/re2/re2/unicode_groups.cc deps/re2/util/rune.cc deps/re2/util/strutil.cc
+wasm/re2.js: wrap/re2_wrap.cc CMakeLists.txt
 	mkdir -p wasm
-	emcc --bind -s WASM=1 -s WASM_ASYNC_COMPILATION=0 -s NODEJS_CATCH_EXIT=0 -s NODEJS_CATCH_REJECTION=0 -I deps/re2 -o wasm/re2.js wrap/re2_wrap.cc deps/re2/re2/bitstate.cc deps/re2/re2/compile.cc deps/re2/re2/dfa.cc deps/re2/re2/filtered_re2.cc deps/re2/re2/mimics_pcre.cc deps/re2/re2/nfa.cc deps/re2/re2/onepass.cc deps/re2/re2/parse.cc deps/re2/re2/perl_groups.cc deps/re2/re2/prefilter.cc deps/re2/re2/prefilter_tree.cc deps/re2/re2/prog.cc deps/re2/re2/re2.cc deps/re2/re2/regexp.cc deps/re2/re2/set.cc deps/re2/re2/simplify.cc deps/re2/re2/tostring.cc deps/re2/re2/unicode_casefold.cc deps/re2/re2/unicode_groups.cc deps/re2/util/rune.cc deps/re2/util/strutil.cc
+	emcmake cmake -B $(BUILD_DIR) -G Ninja $(CMAKE_EXTRA_ARGS)
+	cmake --build $(BUILD_DIR) --target re2_wasm
+	cp $(BUILD_DIR)/re2.js wasm/re2.js
+	cp $(BUILD_DIR)/re2.wasm wasm/re2.wasm
+
+clean:
+	rm -rf $(BUILD_DIR) wasm/re2.js wasm/re2.wasm
+
+.PHONY: all clean
 
