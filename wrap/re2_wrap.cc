@@ -14,11 +14,12 @@
  */
 
 #include <memory>
+#include <vector>
 
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <absl/strings/string_view.h>
 #include <re2/re2.h>
-#include <re2/stringpiece.h>
 
 using namespace emscripten;
 
@@ -41,7 +42,7 @@ static std::shared_ptr<re2::RE2::Options> getOptionsFromFlags(const bool ignoreC
 class WrappedRE2 {
   public:
     WrappedRE2(const std::string& pattern, const bool ignoreCase, const bool multiline, const bool dotAll):
-      wrapped(re2::StringPiece(pattern), *getOptionsFromFlags(ignoreCase, multiline, dotAll)) {}
+      wrapped(pattern, *getOptionsFromFlags(ignoreCase, multiline, dotAll)) {}
 
     bool ok() const {
       return wrapped.ok();
@@ -60,17 +61,17 @@ class WrappedRE2 {
        * method, no match information is needed, so the submatchCount could be
        * 0. For API simplicity, we are currently not doing that. */
       int submatchCount = getCaptureGroups ? wrapped.NumberOfCapturingGroups() + 1 : 1;
-      re2::StringPiece matches[submatchCount];
+      std::vector<absl::string_view> matches(submatchCount);
       // Convert an index into a UTF8 string to a byte offset
       size_t byteStart = 0;
       for (size_t i = 0; i < start; i++) {
         byteStart += getUtf8CharSize(input[byteStart]);
       }
-      bool success = wrapped.Match(re2::StringPiece(input), byteStart, input.size(), RE2::UNANCHORED, matches, submatchCount);
+      bool success = wrapped.Match(input, byteStart, input.size(), RE2::UNANCHORED, matches.data(), submatchCount);
       val result = val::object();
       if (success) {
-        re2::StringPiece matchResult = matches[0];
-        result.set("match", static_cast<std::string>(matchResult));
+        absl::string_view matchResult = matches[0];
+        result.set("match", std::string(matchResult));
         // Convert a byte offset to a UTF8 index
         size_t byteIndex = matchResult.data() - input.data();
         size_t utf8Index = 0;
@@ -80,11 +81,11 @@ class WrappedRE2 {
         result.set("index", utf8Index);
         val captureGroups = val::array();
         if (getCaptureGroups) {
-          for (size_t index = 1; index < submatchCount; index++) {
-            if (matches[index].data() == NULL) {
+          for (size_t index = 1; index < static_cast<size_t>(submatchCount); index++) {
+            if (matches[index].data() == nullptr) {
               captureGroups.set(index - 1, val::undefined());
             } else {
-              captureGroups.set(index - 1, static_cast<std::string>(matches[index]));
+              captureGroups.set(index - 1, std::string(matches[index]));
             }
           }
         }
