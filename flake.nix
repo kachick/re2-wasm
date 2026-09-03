@@ -1,46 +1,40 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    # edge-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-    # edge-nixpkgs,
-    }:
+    { self, nixpkgs }:
     let
       inherit (nixpkgs) lib;
       forAllSystems = lib.genAttrs lib.systems.flakeExposed;
     in
     {
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
       devShells = forAllSystems (
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
         in
-        # edge-pkgs = edge-nixpkgs.legacyPackages.${system};
         {
           default =
             with pkgs;
             mkShell {
               buildInputs = [
                 bashInteractive
-                nixfmt-rfc-style
+                nixfmt
                 nil
 
-                nodejs_20
+                nodejs_22
+                gnumake
                 cmake
-                # abseil-cpp # https://github.com/google/re2/blob/b84e3ff189980a33d4a0c6fa1201aa0b3b8bab4a/README#L13
-                (abseil-cpp_202401.override { cxxStandard = "17"; })
                 ninja
-                llvmPackages_17.clang-tools
-                emscripten # `emcc`
+                emscripten
               ];
-              # LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.abseil-cpp ];
-              # propagatedBuildInputs = [ pkgs.abseil-cpp pkgs.icu ];
+
+              shellHook = ''
+                export ABSEIL_SOURCE_DIR="${pkgs.abseil-cpp_202401.src}"
+              '';
             };
         }
       );
@@ -49,52 +43,51 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          my-abseil = pkgs.abseil-cpp_202401.override { cxxStandard = "17"; };
-
-          re2-src = pkgs.fetchgit {
-            url = "git://github.com/google/re2.git";
+          re2-src = pkgs.fetchFromGitHub {
+            owner = "google";
+            repo = "re2";
             rev = "2024-07-02";
-            hash = lib.fakeHash;
-            fetchSubmodules = true;
+            hash = "sha256-IeANwJlJl45yf8iu/AZNDoiyIvTCZIeK1b74sdCfAIc=";
           };
         in
-        {
-          re2-wasm = pkgs.llvmPackages_17.stdenv.mkDerivation {
-            name = "re2-wasm";
-            srcs = [
-              ./.
-              re2-src
-            ];
-            # nativeBuildInputs = with pkgs; [
-            #   # gnumake
-            #   cmake
-            #   # ninja
-            #   # pkg-config
-            #   my-abseil
-            #   llvmPackages_17.clang-tools
-            # ];
-            buildInputs = with pkgs; [
-              llvmPackages_17.clang-tools
+        rec {
+          re2-wasm = pkgs.stdenv.mkDerivation {
+            pname = "re2-wasm";
+            version = "2024-07-02";
 
-              nodejs_20
-              # gnumake
+            src = ./.;
+
+            dontUseCmakeConfigure = true;
+
+            nativeBuildInputs = with pkgs; [
               cmake
-
-              # ninja
-              my-abseil
-              emscripten # `emcc`
+              ninja
+              emscripten
             ];
 
-            # buildPhase = ''
+            buildPhase = ''
+              export HOME=$TMPDIR
+              export EM_CACHE=$TMPDIR/emcache
 
-            # '';
+              mkdir -p deps
+              rm -rf deps/re2
+              cp -r ${re2-src} deps/re2
+              chmod -R u+w deps/re2
+
+              emcmake cmake -B build/cmake -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DABSEIL_SOURCE_DIR=${pkgs.abseil-cpp_202401.src}
+
+              cmake --build build/cmake --target re2_wasm
+            '';
 
             installPhase = ''
-              rm -rf ./deps
-              mv ./re2 ./deps/re2
-              npm install
+              mkdir -p $out/lib/wasm
+              cp build/cmake/re2.js $out/lib/wasm/
+              cp build/cmake/re2.wasm $out/lib/wasm/
             '';
           };
+          default = re2-wasm;
         }
       );
     };
